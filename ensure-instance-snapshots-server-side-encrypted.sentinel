@@ -1,0 +1,31 @@
+import "tfplan-functions" as plan 
+import "tfconfig-functions" as config
+
+allRdsDbResources = plan.find_resources("aws_db_instance")
+allAuroraDbClusterSnapshotsResources = config.find_resources_by_type("aws_db_snapshot")
+validAttributeValue=true
+unSupportedType=[null,[],"undefined"]
+
+violatingResources={}
+for allRdsDbResources as address,resources{
+    for allAuroraDbClusterSnapshotsResources as address1,resources1{
+        requiredResource = resources1.config.db_instance_identifier.references[1]
+        if(requiredResource == resources.address){
+            if(resources.change.after contains "storage_encrypted"and resources.change.after.storage_encrypted not in unSupportedType){
+                if(resources.change.after.storage_encrypted is not validAttributeValue){
+                print ("For ",resources.address,",",resources.change.after.storage_encrypted ,"is not a valid value for storage_encrypted attribute.Only allowed value is true")
+                violatingResources[address]=resources.address
+            }
+            } else {
+                print("For ",resources.address,",storage_encrypted attribute is not present or undefined")
+                violatingResources[address]=resources.address
+            }
+           }
+    }
+}
+print("Policy validation rule - Ensure RDS DB Instance snapshots have server side encryption enabled")
+
+#Main Rule
+main = rule {
+    length(violatingResources) == 0
+}

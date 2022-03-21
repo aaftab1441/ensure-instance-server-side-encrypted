@@ -1,4 +1,0 @@
-resource "aws_db_instance" "Ensure_RDS_Instances_Have_Encryption" {
-	storage_encrypted = true
-	kms_key_id = 'instance_kms_key_id'
-}
